@@ -65,6 +65,19 @@ async function screenshotIfEnabled(page: Page, name: string, enabled: boolean, d
 
 // ─── Login ───────────────────────────────────────────────────────
 
+// The homepage has 3 elements with text "Mi cuenta": a loan-calculator button
+// (first in DOM, NOT the login), and the real login buttons #btn-auth-normal
+// (desktop) and #btn-auth (responsive). Prefer whichever specific ID is
+// visible; only fall back to text matching if neither is.
+export async function clickMiCuenta(page: Page): Promise<void> {
+  const authBtn = page.locator("#btn-auth-normal:visible, #btn-auth:visible").first();
+  if (await authBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await authBtn.click({ timeout: 5000 });
+  } else {
+    await page.locator("a, button").filter({ hasText: "Mi cuenta" }).first().click({ timeout: 5000 });
+  }
+}
+
 async function login(page: Page, rut: string, password: string, debugLog: string[], doScreenshots: boolean, progress: (s: string) => void): Promise<{ success: true } | { success: false; error: string; screenshot?: string }> {
   debugLog.push("1. Navigating to bank homepage...");
   progress("Abriendo sitio del banco...");
@@ -82,7 +95,7 @@ async function login(page: Page, rut: string, password: string, debugLog: string
   debugLog.push("2. Clicking 'Mi cuenta'...");
   progress("Ingresando a Mi cuenta...");
   try {
-    await page.locator('a, button').filter({ hasText: "Mi cuenta" }).first().click({ timeout: 5000 });
+    await clickMiCuenta(page);
   } catch { /* may cause navigation context change */ }
   await page.waitForLoadState("networkidle").catch(() => {});
   await delay(3000);
@@ -374,6 +387,28 @@ async function paginateAccountMovements(page: Page, debugLog: string[]): Promise
 
 // ─── CMR credit card ────────────────────────────────────────────
 
+// The dashboard is littered with "CMR" text (logo, "CMR Puntos" menu,
+// "Aumenta tu cupo CMR" banner, etc.), so a broad /CMR/ locator matches many
+// elements and isVisible() throws a strict-mode violation — that's why this
+// used to bail with "No CMR card found". Target the credit-card product
+// specifically: the "Estado de cuenta" button in its row, then the card
+// link/detail as fallbacks. Returns true if a candidate was clicked.
+export async function clickCmrEntry(page: Page): Promise<boolean> {
+  const candidates = [
+    page.getByRole("button", { name: /Estado de cuenta/i }).first(),
+    page.getByRole("link", { name: /Estado de cuenta/i }).first(),
+    page.getByRole("link", { name: /CMR\s+(Mastercard|Visa)/i }).first(),
+    page.locator("#cardDetail0, [id^='cardDetail']").first(),
+  ];
+  for (const candidate of candidates) {
+    if (await candidate.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await candidate.click({ timeout: 5000 }).catch(() => {});
+      return true;
+    }
+  }
+  return false;
+}
+
 async function scrapeCreditCard(page: Page, debugLog: string[], doScreenshots: boolean, progress: (s: string) => void, ownerFilter: string): Promise<{ movements: BankMovement[]; creditCard: CreditCardBalance }> {
   const creditCard: CreditCardBalance = { label: "CMR" };
   const allMovements: BankMovement[] = [];
@@ -385,17 +420,12 @@ async function scrapeCreditCard(page: Page, debugLog: string[], doScreenshots: b
   const cupoData = await extractCupos(page, debugLog);
   if (cupoData) Object.assign(creditCard, cupoData);
 
-  // Click on CMR product card
-  const cmrLink = page.getByRole("link", { name: /CMR/ }).first()
-    .or(page.locator("#cardDetail0, [id^='cardDetail']").first())
-    .or(page.locator("a, button, div").filter({ hasText: /CMR/i }).first());
-
-  if (!(await cmrLink.isVisible({ timeout: 5000 }).catch(() => false))) {
+  const cmrClicked = await clickCmrEntry(page);
+  if (!cmrClicked) {
     debugLog.push("  [CMR] No CMR card found on dashboard");
     return { movements: [], creditCard };
   }
 
-  await cmrLink.click();
   await page.waitForLoadState("networkidle").catch(() => {});
   await delay(5000);
   await screenshotIfEnabled(page, "06-cmr-card", doScreenshots, debugLog);
