@@ -4,6 +4,8 @@ Scrapers open source para bancos chilenos. Obtén tus movimientos bancarios y sa
 
 > **Disclaimer**: Este proyecto no está afiliado con ningún banco. Úsalo bajo tu propia responsabilidad y solo con tus propias credenciales.
 
+> Fork mantenido de [kaihv/open-banking-chile](https://github.com/kaihv/open-banking-chile). Se instala directo desde GitHub (no está publicado en npm).
+
 ## Migración v2 → v3
 
 **v3.0.0 introduce un cambio breaking en `ScrapeResult`:**
@@ -75,14 +77,25 @@ brew install --cask google-chrome
 ## Instalación
 
 ```bash
-# Desde GitHub
-npm install github:kaihv/open-banking-chile
+# Desde GitHub (rama main)
+npm install github:anticuchito/open-banking-chile
+
+# Fijado a una versión (tag de git) — recomendado
+npm install github:anticuchito/open-banking-chile#v3.0.0
 
 # O clonar el repo
-git clone https://github.com/kaihv/open-banking-chile.git
+git clone https://github.com/anticuchito/open-banking-chile.git
 cd open-banking-chile
 npm install
 npm run build
+```
+
+O en el `package.json` de tu proyecto:
+
+```json
+"dependencies": {
+  "open-banking-chile": "github:anticuchito/open-banking-chile#v3.0.0"
+}
 ```
 
 ## Uso

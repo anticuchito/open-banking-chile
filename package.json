@@ -1,6 +1,6 @@
 {
   "name": "open-banking-chile",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Scrapers open source para bancos chilenos. Obtén tus movimientos y saldo como JSON. Open source scrapers for Chilean banks.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -11,6 +11,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js",
+      "require": "./dist/utils.cjs"
     }
   },
   "files": [
@@ -47,7 +52,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kaihv/open-banking-chile.git"
+    "url": "https://github.com/anticuchito/open-banking-chile.git"
   },
   "engines": {
     "node": ">=18"
